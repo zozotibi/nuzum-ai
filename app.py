@@ -1,31 +1,38 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import joblib
 
-# إنشاء التطبيق
-app = FastAPI()
+app = FastAPI(title="نُظُم API")
 
-# تفعيل CORS (للسماح لـ Netlify بالاتصال)
+# CORS (مهم لربط Netlify)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # يسمح لأي واجهة Frontend
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# تحميل النموذج
-model = joblib.load("model.pkl")
-
-# شكل البيانات القادمة من الواجهة
 class CaseText(BaseModel):
     text: str
 
-# نقطة التنبؤ
+@app.get("/")
+def root():
+    return {"status": "نُظُم API يعمل بنجاح"}
+
 @app.post("/predict")
 def predict_case(data: CaseText):
-    prediction = model.predict([data.text])
-    return {
-        "prediction": prediction[0]
-    }
+    text = data.text
 
+    if "حكم" in text and "تنفيذ" in text:
+        result = "تنفيذ حكم إداري"
+    elif "قرار" in text or "فصل" in text:
+        result = "إلغاء قرار إداري"
+    elif "عقد" in text or "مقاولة" in text:
+        result = "عقد إداري"
+    elif "تعويض" in text or "ضرر" in text:
+        result = "تعويض"
+    else:
+        result = "غير محدد"
+
+    return {"prediction": result}
